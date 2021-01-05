@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitee.com/pcio/demo/utils"
 	"github.com/miekg/dns"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
@@ -96,9 +95,10 @@ func Lookup(service string, entries chan<- *ServiceEntry) error {
 	// ! service: _foobar._tcp
 	params := DefaultParams(service)
 	params.Entries = entries
+	params.DisableIPv6 = true
 	// ! add WLAN interface
-	ifce := utils.GetLocalInterfaceByName("WLAN")
-	params.Interface = &ifce
+	// ifce := utils.GetLocalInterfaceByName("WLAN")
+	// params.Interface = &ifce
 	// !
 	return Query(params)
 }
