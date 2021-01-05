@@ -96,10 +96,6 @@ func Lookup(service string, entries chan<- *ServiceEntry) error {
 	params := DefaultParams(service)
 	params.Entries = entries
 	params.DisableIPv6 = true
-	// ! add WLAN interface
-	// ifce := utils.GetLocalInterfaceByName("WLAN")
-	// params.Interface = &ifce
-	// !
 	return Query(params)
 }
 
