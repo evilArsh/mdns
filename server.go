@@ -58,26 +58,27 @@ type Server struct {
 // NewServer is used to create a new mDNS server from a config
 func NewServer(config *Config) (*Server, error) {
 	// Create the listeners
-	mAddrs, err0 := config.Iface.MulticastAddrs()
-	if err0 != nil {
-		fmt.Println(err0)
-		return nil, err0
-	}
-	addrs, err1 := config.Iface.Addrs()
-	if err1 != nil {
-		fmt.Println(err1)
-		return nil, err1
+	if config.Iface != nil {
+		mAddrs, err0 := config.Iface.MulticastAddrs()
+		if err0 != nil {
+			fmt.Println(err0)
+			return nil, err0
+		}
+		addrs, err1 := config.Iface.Addrs()
+		if err1 != nil {
+			fmt.Println(err1)
+			return nil, err1
+		}
+		for _, addr := range addrs {
+			fmt.Println("[unicast addr:]" + addr.String())
+		}
+		for _, maddr := range mAddrs {
+			fmt.Println("[multicast joined addr:]" + maddr.String())
+		}
+		fmt.Println("[MAC address: ]" + config.Iface.HardwareAddr.String())
 	}
 	ipv4List, _ := net.ListenMulticastUDP("udp4", config.Iface, ipv4Addr)
-	for _, addr := range addrs {
-		fmt.Println("[unicast addr:]" + addr.String())
-	}
-	for _, maddr := range mAddrs {
-		fmt.Println("[multicast joined addr:]" + maddr.String())
-	}
-	fmt.Printf("[server listing: %s]\n[MAC address: %s]\n",
-		ipv4Addr.String(),
-		config.Iface.HardwareAddr.String())
+	fmt.Printf("[server listing: %s]\n", ipv4Addr.String())
 	// ! 暂时不用ipv6
 	// ipv6List, _ := net.ListenMulticastUDP("udp6", config.Iface, ipv6Addr)
 	var ipv6List *net.UDPConn
