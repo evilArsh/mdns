@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -96,6 +97,16 @@ func Lookup(service string, entries chan<- *ServiceEntry) error {
 	params := DefaultParams(service)
 	params.Entries = entries
 	params.DisableIPv6 = true
+	osType := runtime.GOOS
+	switch osType {
+	case "windows":
+		ifce, err := net.InterfaceByName("WLAN")
+		if err != nil {
+			return err
+		}
+		params.Interface = ifce
+	case "linux":
+	}
 	return Query(params)
 }
 
