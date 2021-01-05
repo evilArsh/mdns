@@ -1,0 +1,84 @@
+Frame 1250: 78 bytes on wire (624 bits), 78 bytes captured (624 bits) on interface \Device\NPF_{FAC3009E-C27C-441D-80FD-B4605A0F49A9}, id 0
+    Interface id: 0 (\Device\NPF_{FAC3009E-C27C-441D-80FD-B4605A0F49A9})
+        Interface name: \Device\NPF_{FAC3009E-C27C-441D-80FD-B4605A0F49A9}
+        Interface description: WLAN
+    Encapsulation type: Ethernet (1)
+    Arrival Time: Jan  5, 2021 16:02:36.695340000 中国标准时间
+    [Time shift for this packet: 0.000000000 seconds]
+    Epoch Time: 1609833756.695340000 seconds
+    [Time delta from previous captured frame: 0.072447000 seconds]
+    [Time delta from previous displayed frame: 0.000000000 seconds]
+    [Time since reference or first frame: 36.695157000 seconds]
+    Frame Number: 1250
+    Frame Length: 78 bytes (624 bits)
+    Capture Length: 78 bytes (624 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: eth:ethertype:ip:udp:mdns]
+    [Coloring Rule Name: UDP]
+    [Coloring Rule String: udp]
+Ethernet II, Src: IntelCor_c2:fb:e6 (b8:08:cf:c2:fb:e6), Dst: IPv4mcast_fb (01:00:5e:00:00:fb)
+    Destination: IPv4mcast_fb (01:00:5e:00:00:fb)
+        Address: IPv4mcast_fb (01:00:5e:00:00:fb)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...1 .... .... .... .... = IG bit: Group address (multicast/broadcast)
+    Source: IntelCor_c2:fb:e6 (b8:08:cf:c2:fb:e6)
+        Address: IntelCor_c2:fb:e6 (b8:08:cf:c2:fb:e6)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Type: IPv4 (0x0800)
+Internet Protocol Version 4, Src: 172.22.60.132, Dst: 224.0.0.251
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)
+        0000 00.. = Differentiated Services Codepoint: Default (0)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 64
+    Identification: 0x357d (13693)
+    Flags: 0x00
+        0... .... = Reserved bit: Not set
+        .0.. .... = Don't fragment: Not set
+        ..0. .... = More fragments: Not set
+    Fragment Offset: 0
+    Time to Live: 1
+        [Expert Info (Note/Sequence): "Time To Live" != 255 for a packet sent to the Local Network Control Block (see RFC 3171)]
+            ["Time To Live" != 255 for a packet sent to the Local Network Control Block (see RFC 3171)]
+            [Severity level: Note]
+            [Group: Sequence]
+    Protocol: UDP (17)
+    Header Checksum: 0x0000 [validation disabled]
+    [Header checksum status: Unverified]
+    Source Address: 172.22.60.132
+    Destination Address: 224.0.0.251
+User Datagram Protocol, Src Port: 59681, Dst Port: 5353
+    Source Port: 59681
+    Destination Port: 5353
+    Length: 44
+    Checksum: 0xbffd [unverified]
+    [Checksum Status: Unverified]
+    [Stream index: 32]
+    [Timestamps]
+        [Time since first frame: 0.000000000 seconds]
+        [Time since previous frame: 0.000000000 seconds]
+    UDP payload (36 bytes)
+Multicast Domain Name System (query)
+    Transaction ID: 0x14ad
+    Flags: 0x0000 Standard query
+        0... .... .... .... = Response: Message is a query
+        .000 0... .... .... = Opcode: Standard query (0)
+        .... ..0. .... .... = Truncated: Message is not truncated
+        .... ...0 .... .... = Recursion desired: Don't do query recursively
+        .... .... .0.. .... = Z: reserved (0)
+        .... .... ...0 .... = Non-authenticated data: Unacceptable
+    Questions: 1
+    Answer RRs: 0
+    Authority RRs: 0
+    Additional RRs: 0
+    Queries
+        _foobar._tcp.local: type PTR, class IN, "QM" question
+            Name: _foobar._tcp.local
+            [Name Length: 18]
+            [Label Count: 3]
+            Type: PTR (domain name PoinTeR) (12)
+            .000 0000 0000 0001 = Class: IN (0x0001)
+            0... .... .... .... = "QU" question: False
