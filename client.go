@@ -8,9 +8,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitee.com/pcio/demo/utils"
 	"github.com/miekg/dns"
 	"golang.org/x/net/ipv4"
-	"golang.org/x/net/ipv6"
 )
 
 // ServiceEntry is returned after we query for a service
@@ -49,7 +49,7 @@ func DefaultParams(service string) *QueryParam {
 	return &QueryParam{
 		Service:             service,
 		Domain:              "local",
-		Timeout:             time.Second,
+		Timeout:             time.Second * 3,
 		Entries:             make(chan *ServiceEntry),
 		WantUnicastResponse: false, // TODO(reddaly): Change this default.
 	}
@@ -65,11 +65,11 @@ func Query(params *QueryParam) error {
 	if err != nil {
 		return err
 	}
-	defer client.Close()
 
 	// Set the multicast interface
 	if params.Interface != nil {
 		if err := client.setInterface(params.Interface); err != nil {
+			fmt.Println(err)
 			return err
 		}
 	}
@@ -88,8 +88,13 @@ func Query(params *QueryParam) error {
 
 // Lookup is the same as Query, however it uses all the default parameters
 func Lookup(service string, entries chan<- *ServiceEntry) error {
+	// ! service: _foobar._tcp
 	params := DefaultParams(service)
 	params.Entries = entries
+	// ! add WLAN interface
+	ifce := utils.GetLocalInterfaceByName("WLAN")
+	params.Interface = &ifce
+	// !
 	return Query(params)
 }
 
@@ -111,38 +116,50 @@ type client struct {
 func newClient() (*client, error) {
 	// TODO(reddaly): At least attempt to bind to the port required in the spec.
 	// Create a IPv4 listener
-	uconn4, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
+	uconn4, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.ParseIP(utils.GetLocalIpByName("WLAN")), Port: 0})
+	fmt.Println("[listen unicast: ]" + uconn4.LocalAddr().String())
 	if err != nil {
 		log.Printf("[ERR] mdns: Failed to bind to udp4 port: %v", err)
 	}
-	uconn6, err := net.ListenUDP("udp6", &net.UDPAddr{IP: net.IPv6zero, Port: 0})
-	if err != nil {
-		log.Printf("[ERR] mdns: Failed to bind to udp6 port: %v", err)
-	}
-
-	if uconn4 == nil && uconn6 == nil {
+	// !
+	// uconn6, err := net.ListenUDP("udp6", &net.UDPAddr{IP: net.IPv6zero, Port: 0})
+	// if err != nil {
+	// 	log.Printf("[ERR] mdns: Failed to bind to udp6 port: %v", err)
+	// }
+	// !not support in windows
+	// if uconn4 == nil && uconn6 == nil {
+	// 	return nil, fmt.Errorf("failed to bind to any unicast udp port")
+	// }
+	if uconn4 == nil {
 		return nil, fmt.Errorf("failed to bind to any unicast udp port")
 	}
+	ifce, e := net.InterfaceByName("WLAN")
+	if e != nil {
+		fmt.Println(e)
+	}
+	mconn4, err := net.ListenMulticastUDP("udp4", ifce, ipv4Addr)
 
-	mconn4, err := net.ListenMulticastUDP("udp4", nil, ipv4Addr)
+	fmt.Println("[listen multicast: ]" + mconn4.LocalAddr().String())
 	if err != nil {
 		log.Printf("[ERR] mdns: Failed to bind to udp4 port: %v", err)
 	}
-	mconn6, err := net.ListenMulticastUDP("udp6", nil, ipv6Addr)
-	if err != nil {
-		log.Printf("[ERR] mdns: Failed to bind to udp6 port: %v", err)
-	}
+	// !
+	// mconn6, err := net.ListenMulticastUDP("udp6", nil, ipv6Addr)
+	// if err != nil {
+	// 	log.Printf("[ERR] mdns: Failed to bind to udp6 port: %v", err)
+	// }
 
-	if mconn4 == nil && mconn6 == nil {
-		return nil, fmt.Errorf("failed to bind to any multicast udp port")
-	}
+	// !
+	// if mconn4 == nil && mconn6 == nil {
+	// 	return nil, fmt.Errorf("failed to bind to any multicast udp port")
+	// }
 
 	c := &client{
 		ipv4MulticastConn: mconn4,
-		ipv6MulticastConn: mconn6,
-		ipv4UnicastConn:   uconn4,
-		ipv6UnicastConn:   uconn6,
-		closedCh:          make(chan struct{}),
+		// ipv6MulticastConn: mconn6,
+		ipv4UnicastConn: uconn4,
+		// ! ipv6UnicastConn:   uconn6,
+		closedCh: make(chan struct{}),
 	}
 	return c, nil
 }
@@ -180,32 +197,35 @@ func (c *client) setInterface(iface *net.Interface) error {
 	if err := p.SetMulticastInterface(iface); err != nil {
 		return err
 	}
-	p2 := ipv6.NewPacketConn(c.ipv6UnicastConn)
-	if err := p2.SetMulticastInterface(iface); err != nil {
-		return err
-	}
+	// ! ipv6 暂未使用
+	// p2 := ipv6.NewPacketConn(c.ipv6UnicastConn)
+	// if err := p2.SetMulticastInterface(iface); err != nil {
+	// 	return err
+	// }
 	p = ipv4.NewPacketConn(c.ipv4MulticastConn)
 	if err := p.SetMulticastInterface(iface); err != nil {
 		return err
 	}
-	p2 = ipv6.NewPacketConn(c.ipv6MulticastConn)
-	if err := p2.SetMulticastInterface(iface); err != nil {
-		return err
-	}
+	// ! ipv6 暂未使用
+	// p2 = ipv6.NewPacketConn(c.ipv6MulticastConn)
+	// if err := p2.SetMulticastInterface(iface); err != nil {
+	// 	return err
+	// }
 	return nil
 }
 
 // query is used to perform a lookup and stream results
 func (c *client) query(params *QueryParam) error {
 	// Create the service name
+	// ! _foobar._tcp.local.
 	serviceAddr := fmt.Sprintf("%s.%s.", trimDot(params.Service), trimDot(params.Domain))
-
+	fmt.Println("[要查询的服务:]" + serviceAddr)
 	// Start listening for response packets
 	msgCh := make(chan *dns.Msg, 32)
 	go c.recv(c.ipv4UnicastConn, msgCh)
-	go c.recv(c.ipv6UnicastConn, msgCh)
+	// ! go c.recv(c.ipv6UnicastConn, msgCh)
 	go c.recv(c.ipv4MulticastConn, msgCh)
-	go c.recv(c.ipv6MulticastConn, msgCh)
+	// ! go c.recv(c.ipv6MulticastConn, msgCh)
 
 	// Send the query
 	m := new(dns.Msg)
@@ -296,6 +316,9 @@ func (c *client) query(params *QueryParam) error {
 				}
 			}
 		case <-finish:
+			log.Printf("[timeout:%d s,closed]\n", params.Timeout)
+			c.Close()
+			close(params.Entries)
 			return nil
 		}
 	}

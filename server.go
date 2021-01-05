@@ -59,7 +59,9 @@ type Server struct {
 func NewServer(config *Config) (*Server, error) {
 	// Create the listeners
 	ipv4List, _ := net.ListenMulticastUDP("udp4", config.Iface, ipv4Addr)
-	ipv6List, _ := net.ListenMulticastUDP("udp6", config.Iface, ipv6Addr)
+	// ! 暂时不用ipv6
+	// ipv6List, _ := net.ListenMulticastUDP("udp6", config.Iface, ipv6Addr)
+	var ipv6List *net.UDPConn
 
 	// Check if we have any listener
 	if ipv4List == nil && ipv6List == nil {
@@ -110,7 +112,8 @@ func (s *Server) recv(c *net.UDPConn) {
 	buf := make([]byte, 65536)
 	for atomic.LoadInt32(&s.shutdown) == 0 {
 		n, from, err := c.ReadFrom(buf)
-
+		fmt.Println("[来自:]" + from.String())
+		// fmt.Printf("[raw data: ] %s \n", string(buf[0:n]))
 		if err != nil {
 			continue
 		}
@@ -127,6 +130,7 @@ func (s *Server) parsePacket(packet []byte, from net.Addr) error {
 		log.Printf("[ERR] mdns: Failed to unpack packet: %v", err)
 		return err
 	}
+	fmt.Printf("[unpacked data: ] \n%s ", msg.String())
 	return s.handleQuery(&msg, from)
 }
 
@@ -157,7 +161,7 @@ func (s *Server) handleQuery(query *dns.Msg, from net.Addr) error {
 	}
 
 	var unicastAnswer, multicastAnswer []dns.RR
-
+	// !query.Question 来自局域网，s.handleQuestion对这些问题进行处理
 	// Handle each question
 	for _, q := range query.Question {
 		mrecs, urecs := s.handleQuestion(q)
@@ -244,6 +248,8 @@ func (s *Server) handleQuery(query *dns.Msg, from net.Addr) error {
 // The response to a question may be transmitted over multicast, unicast, or
 // both.  The return values are DNS records for each transmission type.
 func (s *Server) handleQuestion(q dns.Question) (multicastRecs, unicastRecs []dns.RR) {
+	// ! NewMDNSService 实现了 Zone 的Records方法
+	// ! zone.go::Records
 	records := s.config.Zone.Records(q)
 
 	if len(records) == 0 {

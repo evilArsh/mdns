@@ -135,9 +135,13 @@ func trimDot(s string) string {
 
 // Records returns DNS records in response to a DNS question.
 func (m *MDNSService) Records(q dns.Question) []dns.RR {
+	fmt.Println("[查询名字是:]" + q.Name)
+	// ! 猜测，当前要查询的类型，是一个IPv4或者IPv6或者是一个服务，然后
+	// ! 做出相应的处理
 	switch q.Name {
 	case m.enumAddr:
 		return m.serviceEnum(q)
+	// ! 例如: _foobar._tcp.local.
 	case m.serviceAddr:
 		return m.serviceRecords(q)
 	case m.instanceAddr:
