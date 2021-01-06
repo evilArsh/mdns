@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 
 	"github.com/miekg/dns"
+	"golang.org/x/net/ipv4"
+	"golang.org/x/net/ipv6"
 )
 
 const (
@@ -48,8 +50,9 @@ type Config struct {
 type Server struct {
 	config *Config
 
-	ipv4List *net.UDPConn
-	ipv6List *net.UDPConn
+	// ipv4List *net.UDPConn
+	ipv4List *ipv4.PacketConn
+	ipv6List *ipv6.PacketConn
 
 	shutdown   int32
 	shutdownCh chan struct{}
@@ -77,11 +80,21 @@ func NewServer(config *Config) (*Server, error) {
 		}
 		fmt.Println("[MAC address: ]" + config.Iface.HardwareAddr.String())
 	}
-	ipv4List, _ := net.ListenMulticastUDP("udp4", config.Iface, ipv4Addr)
+
+	// todo 尝试随机端口 非5353
+	c, err2 := net.ListenPacket("udp4", ipv4Addr.String())
+	if err2 != nil {
+		fmt.Println(err2)
+		return nil, err2
+	}
+	p := ipv4.NewPacketConn(c)
+	p.JoinGroup(config.Iface, ipv4Addr)
+	p.SetMulticastLoopback(true)
+	p.SetMulticastTTL(1)
+	ipv4List := p
 	fmt.Printf("[server listing: %s]\n", ipv4Addr.String())
 	// ! 暂时不用ipv6
-	// ipv6List, _ := net.ListenMulticastUDP("udp6", config.Iface, ipv6Addr)
-	var ipv6List *net.UDPConn
+	var ipv6List *ipv6.PacketConn
 
 	// Check if we have any listener
 	if ipv4List == nil && ipv6List == nil {
@@ -96,11 +109,11 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	if ipv4List != nil {
-		go s.recv(s.ipv4List)
+		go s.recvV4(s.ipv4List)
 	}
 
 	if ipv6List != nil {
-		go s.recv(s.ipv6List)
+		go s.recvV6(s.ipv6List)
 	}
 
 	return s, nil
@@ -123,15 +136,18 @@ func (s *Server) Shutdown() error {
 	}
 	return nil
 }
+func (s *Server) recvV6(c *ipv6.PacketConn) {
+
+}
 
 // recv is a long running routine to receive packets from an interface
-func (s *Server) recv(c *net.UDPConn) {
+func (s *Server) recvV4(c *ipv4.PacketConn) {
 	if c == nil {
 		return
 	}
 	buf := make([]byte, 65536)
 	for atomic.LoadInt32(&s.shutdown) == 0 {
-		n, from, err := c.ReadFrom(buf)
+		n, _, from, err := c.ReadFrom(buf)
 		fmt.Println("[来自:]" + from.String())
 		// fmt.Printf("[raw data: ] %s \n", string(buf[0:n]))
 		if err != nil {
@@ -305,10 +321,10 @@ func (s *Server) sendResponse(resp *dns.Msg, from net.Addr, unicast bool) error 
 	// Determine the socket to send from
 	addr := from.(*net.UDPAddr)
 	if addr.IP.To4() != nil {
-		_, err = s.ipv4List.WriteToUDP(buf, addr)
+		_, err := s.ipv4List.WriteTo(buf, nil, addr)
 		return err
 	} else {
-		_, err = s.ipv6List.WriteToUDP(buf, addr)
+		_, err = s.ipv6List.WriteTo(buf, nil, addr)
 		return err
 	}
 }
